@@ -51,7 +51,8 @@ def main(args):
         hiddens = [override_params['units']]*override_params['hidden_layers']
         activation = override_params['activation']
         batch_size = override_params['batch_size']
-        g = NHT(action_dim=args.action_dim, output_dim=u_dim, cond_dim=o_dim, step_size = alpha, lip_coeff = L, hiddens=hiddens, activation=activation, use_exp=args.use_exp, action_pred=args.action_pred)
+        action_pred = override_params['action_pred']
+        g = NHT(action_dim=args.action_dim, output_dim=u_dim, cond_dim=o_dim, step_size = alpha, lip_coeff = L, hiddens=hiddens, activation=activation, use_exp=args.use_exp, action_pred=action_pred)
 
     else: # hyperparameters from command line args
         alpha = args.alpha
