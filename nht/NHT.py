@@ -47,6 +47,7 @@ class NHT(keras.Model):
             
         if action_pred:
             self.f = MLP(output_dim+cond_dim,hiddens,action_dim, activation) # encoder, predicts low dim action given state and high dim action
+            print("\nUsing action prediction instead of actuation projection.\n")
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.step_size)
         
