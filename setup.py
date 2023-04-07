@@ -13,6 +13,8 @@ setup(name='nht',
                 if package.startswith('nht')],
       install_requires=[
           'pytorch-lightning',
+          'tensorboard==1.15',
+          'gym==0.18',
       ],
       extras_require=None,
       description='Neural Householder Transforms',
