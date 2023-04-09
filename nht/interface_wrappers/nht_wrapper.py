@@ -15,7 +15,7 @@ def register_NHT_env(base_env, NHT_path):
 
     register(
         id=f'NHT_{base_env}',
-        entry_point='nht.mujoco_interface:NHTwrapper',
+        entry_point='nht.interface_wrappers.nht_wrapper:NHTwrapper',
         kwargs={'env': temp_env, 'NHT_path': NHT_path},
     )
 
