@@ -8,14 +8,14 @@ import tensorflow as tf
 from baselines.common.tf_util import get_session
 from nht.NHT import NHT
 
-def register_NHT_env(base_env, NHT_path):
+def register_NHT_env(base_env, NHT_path, action_dim):
     
     temp_env = gym.make(base_env)
 
     register(
         id=f'NHT_{base_env}',
         entry_point='nht.interface_wrappers.nht_wrapper:NHTwrapper',
-        kwargs={'env': temp_env, 'NHT_path': NHT_path},
+        kwargs={'env': temp_env, 'NHT_path': NHT_path, 'action_dim': action_dim},
     )
 
 
@@ -24,8 +24,8 @@ class NHTwrapper(gym.Wrapper):
         super().__init__(env)
         
         self.action_dim = action_dim
-        cond_size = self.env.observation_space.shape
-        u_dim = self.env.action_space.shape
+        cond_size = self.env.observation_space.shape[0]
+        u_dim = self.env.action_space.shape[0]
 
         self.tfsess = get_session()
         # placeholders to construct NHT computational graph
