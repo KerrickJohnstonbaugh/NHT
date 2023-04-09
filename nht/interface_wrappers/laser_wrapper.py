@@ -6,21 +6,21 @@ import gym
 from gym.envs.registration import spec, load
 import tensorflow as tf
 from baselines.common.tf_util import get_session
-from nht.NHT import NHT
+from nht.LASER import LASER
 
-def register_NHT_env(base_env, NHT_path, action_dim):
+def register_LASER_env(base_env, LASER_path, action_dim):
     
     temp_env = gym.make(base_env)
 
     register(
-        id=f'NHT_{base_env}',
-        entry_point='nht.interface_wrappers.nht_wrapper:NHTwrapper',
-        kwargs={'env': temp_env, 'NHT_path': NHT_path, 'action_dim': action_dim},
+        id=f'LASER_{base_env}',
+        entry_point='nht.interface_wrappers.laser_wrapper:LASERwrapper',
+        kwargs={'env': temp_env, 'LASER_path': LASER_path, 'action_dim': action_dim},
     )
 
 
-class NHTwrapper(gym.Wrapper):
-    def __init__(self, env, NHT_path, action_dim):
+class LASERwrapper(gym.Wrapper):
+    def __init__(self, env, LASER_path, action_dim):
         super().__init__(env)
         
         self.action_dim = action_dim
@@ -32,13 +32,12 @@ class NHTwrapper(gym.Wrapper):
         self.cond_inp = tf.placeholder(shape=[None, cond_size], dtype=tf.float32)
         self.z = tf.placeholder(shape=[None, action_dim], dtype=tf.float32)
 
-        # NHT model (outputs basis for actuation subspace given current observation)
-        self.NHT_model = NHT(action_dim=action_dim, output_dim=u_dim, cond_dim=cond_size)
+        # LASER model
+        self.LASER_model = LASER(input_dim=u_dim, latent_dim=action_dim, cond_dim=cond_size)
 
-        
-        self.NHT_model.h.net = tf.keras.models.load_model(NHT_path) # loads weights
-        self.Q_hat = tf.stop_gradient(self.NHT_model._get_map(self.cond_inp))
-        self.NHT_model.freeze_model()
+        self.LASER_model.decoder.net = tf.keras.models.load_model(LASER_path)
+        self.decoded_action = tf.stop_gradient(self.LASER_model.decoder(tf.concat((self.z, self.cond_inp),axis=-1)))
+        self.LASER_model.freeze_model()
         self.set_action_space()
 
 
@@ -51,11 +50,8 @@ class NHTwrapper(gym.Wrapper):
         k = self.action_dim
         assert action.shape == (k,)
 
-        c = np.expand_dims(self._get_obs().copy(),0)
-        Q_hat = self.tfsess.run(self.Q_hat, feed_dict={self.cond_inp: c})
-        a = np.expand_dims(action.copy(),1) # turn action from agent to column vector tensor (with batch dimension)
-        u = np.matmul(Q_hat.squeeze(0), a).squeeze()
-
-        action = u.copy()
+        o_r = np.expand_dims(self._get_obs().copy(),0)
+        action = self.tfsess.run(self.decoded_action, feed_dict={self.cond_inp: o_r, self.z: np.expand_dims(action.copy(),0)})
+        action = action.squeeze().copy()
 
         return self.env.step(action)
