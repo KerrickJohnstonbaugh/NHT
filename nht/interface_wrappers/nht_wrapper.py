@@ -4,7 +4,6 @@ import numpy as np
 from gym.envs.registration import register
 import gym
 from gym.envs.registration import spec, load
-from nht.utils import load_interface
 import tensorflow as tf
 from baselines.common.tf_util import get_session
 from nht.NHT import NHT
