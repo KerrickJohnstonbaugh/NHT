@@ -51,7 +51,7 @@ class NHTwrapper(gym.Wrapper):
         k = self.action_dim
         assert action.shape == (k,)
 
-        c = np.expand_dims(self._get_obs().copy(),0)
+        c = np.expand_dims(self.unwrapped._get_obs().copy(),0)
         Q_hat = self.tfsess.run(self.Q_hat, feed_dict={self.cond_inp: c})
         a = np.expand_dims(action.copy(),1) # turn action from agent to column vector tensor (with batch dimension)
         u = np.matmul(Q_hat.squeeze(0), a).squeeze()

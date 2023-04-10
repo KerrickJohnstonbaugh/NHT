@@ -50,7 +50,7 @@ class LASERwrapper(gym.Wrapper):
         k = self.action_dim
         assert action.shape == (k,)
 
-        o_r = np.expand_dims(self._get_obs().copy(),0)
+        o_r = np.expand_dims(self.unwrapped._get_obs().copy(),0)
         action = self.tfsess.run(self.decoded_action, feed_dict={self.cond_inp: o_r, self.z: np.expand_dims(action.copy(),0)})
         action = action.squeeze().copy()
 

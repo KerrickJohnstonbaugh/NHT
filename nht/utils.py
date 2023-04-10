@@ -66,6 +66,12 @@ def common_arg_parser():
   parser.add_argument('--u_dim', type=int, default=7)
   parser.add_argument('--o_dim', type=int, default=10)
 
+  parser.add_argument('--interface', type=str, default=None)
+  parser.add_argument('--interface_model_path', type=str, default=None)
+  parser.add_argument('--env', type=str, default=None)
+  
+
+
   return parser
 
 
