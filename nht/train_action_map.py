@@ -13,6 +13,8 @@ import numpy as np
 from pytorch_lightning import Trainer 
 
 
+from pytorch_lightning.accelerators import find_usable_cuda_devices
+
 def train_action_map(args):
 
     pl.seed_everything(args.rnd_seed)
@@ -50,12 +52,20 @@ def train_action_map(args):
 
     logger = TensorBoardLogger(save_dir=args.default_root_dir, name=args.run_name, default_hp_metric=False)
 
-    trainer = Trainer.from_argparse_args(args,
-        logger=logger,
-        callbacks=callbacks )
+    # trainer = Trainer.from_argparse_args(args,
+    #     logger=logger,
+    #     callbacks=callbacks )
+        
+    if args.cuda:
+        accelerator = 'gpu'
+
+    else:
+        accelerator = 'cpu'
+
+    trainer = Trainer(accelerator=accelerator, max_epochs=args.max_epochs, logger=logger, callbacks=callbacks)
 
     pl.seed_everything(args.rnd_seed)
-    
+
     trainer.fit(model, train_loader, val_loader)
 
     with open(trainer.checkpoint_callback.dirpath + '/args.yaml', 'w') as f:

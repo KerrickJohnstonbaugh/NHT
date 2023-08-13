@@ -6,9 +6,9 @@ import gym
 from gym.envs.registration import spec, load
 
 
-def register_NHT_env(base_env, NHT_path):
+def register_NHT_env(base_env, NHT_path, device='cpu'):
     
-    NHT_env_class = create_NHT_env(base_env, NHT_path)
+    NHT_env_class = create_NHT_env(base_env, NHT_path, device=device)
     temp_env = gym.make(base_env)
 
     register(
@@ -22,20 +22,22 @@ def register_NHT_env(base_env, NHT_path):
 
 from nht.utils import load_interface
 import torch
-def create_NHT_env(base_env, NHT_path):
+def create_NHT_env(base_env, NHT_path, device):
 
     env_spec = spec(base_env)
     env_class = load(env_spec.entry_point)
 
     class MuJoCoInterfaceEnv(env_class, gym_utils.EzPickle):
         def __init__(self,):# env_config):
-
+            
+            self.device = device
             # load NHT model by reading path from config.yaml
             model_path = NHT_path
             model_type = 'NHT'
             self.Q = load_interface(model_type, model_path)
             self.action_dim = self.Q.k
 
+            self.render_mode = "human"
             env_class.__init__(self)
         
         def _set_original_action_space(self):
@@ -54,10 +56,13 @@ def create_NHT_env(base_env, NHT_path):
             self._set_original_action_space() # temporarily change action space to pass check in MujocoEnv do_simulation function
 
             with torch.no_grad():
-                c = torch.tensor(self._get_obs().copy(),dtype=torch.float32).unsqueeze(0)
+                c = torch.tensor(self._get_obs().copy(),dtype=torch.float32,device=self.device).unsqueeze(0)
                 Q_hat = self.Q(c).squeeze(0)
-                a = np.expand_dims(action.copy(),1) # turn action from agent to column vector tensor (with batch dimension)
-                u = np.matmul(Q_hat, a).squeeze()
+                a = torch.tensor(action).unsqueeze(1).to(Q_hat)
+                u = (Q_hat @ a).squeeze() # matrix x column vec
+
+                if self.device is not 'cpu':
+                    u = u.cpu()
 
                 action = u.numpy().copy()
                 action = np.clip(action, -1, 1)

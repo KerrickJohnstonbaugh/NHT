@@ -8,7 +8,8 @@ import torch
 import random
 import gym
 from torch.utils.data import DataLoader
-import d4rl
+# import d4rl
+from pathlib import Path
 
 def arg_parser():
     """
@@ -25,7 +26,7 @@ def try_float(x):
 
 def action_map_arg_parser():
   parser = arg_parser()
-  parser = Trainer.add_argparse_args(parser)
+  # parser = Trainer.add_argparse_args(parser)
 
   parser.add_argument("--rnd_seed", default = 12345, type = int,
       help= "set random seed for experiments" )
@@ -61,13 +62,15 @@ def action_map_arg_parser():
   # optimization config
   parser.add_argument('--lr', default=1e-3, type=float,
           help="learning rate for optimizer")
-  parser.add_argument('--num-epochs', default=500, type=int, help='number of training epochs')
+  parser.add_argument('--max_epochs', default=500, type=int, help='number of training epochs')
   parser.add_argument('--batch_size', type=int, default=2048, help='training batch size')
   parser.add_argument('--lipschitz_coeff', type= float, default=-1.0, 
       help="desired Lipschitz constant for decoder modules")
   parser.add_argument('--lipschitz_norm', type=lambda x: try_float(x), default=2.0,
       help="norm of Lipschitz regularizer of layers")
 
+  parser.add_argument('--default_root_dir', default='.results', type=str,
+          help="root dir for storing results")
   # gpu and jit config
   parser.add_argument('--cuda', action='store_true', default=False, help='whether to use cuda')
   parser.add_argument('--jit', action='store_true', default=False, help='whether to use PyTorch jit')
@@ -191,14 +194,20 @@ def split_dset(data_dict, prop, transitions, context, val_prop):
 
 
 from nht.models.NHT import NHT
+from nht.models.behavioral_cloning import MLP_BehavioralCloning
 def get_model(args, u_dim, a_dim, c_dim, hiddens, activation, lr, L, multihead, model):
     
     if model == 'NHT':
       return NHT(u_dim=u_dim, a_dim=a_dim, c_dim=c_dim, hiddens=hiddens, act=activation, L=L, multihead=multihead, lr=lr)
+    
+    if model == 'BC':
+      return MLP_BehavioralCloning(u_dim=u_dim, c_dim=c_dim, hiddens=hiddens, act=activation, lr=lr)
 
 def load_model(model):
     if model == 'NHT':
       return NHT
+    if model == 'BC':
+      return MLP_BehavioralCloning
 
 import glob
 import yaml
@@ -220,3 +229,33 @@ def load_interface(model_type, model_path):
     #print(model)
 
     return model
+
+def save_d4rl_dset_to_file(args):
+  env = gym.make(args.d4rl_dset)
+  data_dict = env.get_dataset()
+  #train_data_dict, val_data_dict = split_dset(data_dict, prop=args.dataset_prop, transitions=args.dataset_transitions, context=args.context, val_prop=args.val_prop)
+  print('downloaded!')
+  
+  actions = data_dict['actions']
+  observations = data_dict['observations']
+
+  data_dir = Path('.data')
+  data_dir.mkdir(exist_ok=True)
+  env_dir = data_dir / args.d4rl_dset
+  env_dir.mkdir(exist_ok=True)
+  
+  torch.save(torch.tensor(actions), str(env_dir / 'actions.pt'))
+  torch.save(torch.tensor(observations), str(env_dir / 'observations.pt'))
+
+
+if __name__ == '__main__':
+  # d4rl_dset (halfcheetah-expert-v2)
+  # dataset_prop (1.0)
+  # dataset_transitions
+  # context (default)
+  # val_prop (0.15)
+  # batch_size (default)
+  parser = action_map_arg_parser()
+  args = parser.parse_args()
+  print(args)
+  save_d4rl_dset_to_file(args)
